@@ -12,7 +12,8 @@ import {
     Quaternion,
     StandardMaterial,
     Color3,
-    DepthOfFieldBlurPostProcess} from "@babylonjs/core";
+    DepthOfFieldBlurPostProcess,
+    SceneLoader} from "@babylonjs/core";
 
 export default class Environment{
     _scene:Scene;
@@ -21,10 +22,21 @@ export default class Environment{
         this._scene = scene;
     }
     public async load(){
-        // const ground = Mesh.CreateBox("ground",24,this._scene);
-        // ground.scaling = new Vector3(1,0.02,1);
-        // const box = MeshBuilder.CreateBox("box",{},this._scene);
-        const ground = MeshBuilder.CreateGround("ground",{width:15,height:16},this._scene)
+        const assets = await this._loadAssets();
+        assets.allMeshes.forEach((child)=>{
+            child.receiveShadows = true;
+            child.checkCollisions = true;
+        });
+    }
+    public async _loadAssets(){
+        const result = await SceneLoader.ImportMeshAsync("","./models/","envSetting.glb");
+        const env = result.meshes[0];
+        const allMeshes = env.getChildMeshes();
+
+        return {
+            env:env,
+            allMeshes:allMeshes
+        }
     }
 
     public async _loadCharacterAssets():Promise<Mesh>{
@@ -43,22 +55,16 @@ export default class Environment{
 
         outer.rotationQuaternion = new Quaternion(0, 1, 0, 0); // rotate the player mesh 180 since we want to see the back of the player
 
-        var box = MeshBuilder.CreateBox("Small1", { width: 0.5, depth: 0.5, height: 0.25, faceColors: [new Color4(0,0,0,1), new Color4(0,0,0,1), new Color4(0,0,0,1), new Color4(0,0,0,1),new Color4(0,0,0,1), new Color4(0,0,0,1)] }, this._scene);
-        box.position.y = 1.5;
-        box.position.z = 1;
-
-        var body = Mesh.CreateCylinder("body", 3, 2,2,0,0,this._scene);
-        var bodymtl = new StandardMaterial("red",this._scene);
-        bodymtl.diffuseColor = new Color3(.8,.5,.5);
-        body.material = bodymtl;
-        body.isPickable = false;
-        body.bakeTransformIntoVertices(Matrix.Translation(0, 1.5, 0)); // simulates the imported mesh's origin
-
-        //parent the meshes
-        box.parent = body;
+        const result = await SceneLoader.ImportMeshAsync(null, "./models/", "player.glb", this._scene)
+        const root = result.meshes[0];
+        //body is our actual player mesh
+        const body = root;
         body.parent = outer;
+        body.isPickable = false; //so our raycasts dont hit ourself
+        body.getChildMeshes().forEach(m => {
+            m.isPickable = false;
+        });
 
         return outer;
-   }
-
+    }
 }

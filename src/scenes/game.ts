@@ -81,7 +81,7 @@ export default class GameScene extends Base{
         
          //--WHEN SCENE IS FINISHED LOADING--
         await scene.whenReadyAsync();
-
+        scene.getMeshByName("outer").position = scene.getTransformNodeByName("startPosition").getAbsolutePosition(); //move the player to the start position
         //temporary scene objects
         return scene;
     }

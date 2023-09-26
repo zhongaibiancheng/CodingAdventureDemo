@@ -9,8 +9,8 @@ export default class PlayerController extends TransformNode {
     private _h:number;
     private _v:number;
     private _inputAmt: number;
-    private _moveDirection:Vector3;
-    private _delta_time:number;
+    private _moveDirection:Vector3 = new Vector3();
+    private _delta_time:number = 0;
 
     //Camera
     private _camRoot: TransformNode;
@@ -38,6 +38,8 @@ export default class PlayerController extends TransformNode {
         this.mesh = assets;
         this.mesh.parent = this;
 
+        this.scene.getLightByName("sparklight").parent = this.scene.getTransformNodeByName("Empty");
+        
         shadowGenerator.addShadowCaster(assets); //the player mesh will cast shadows
 
         this._input = input;
@@ -47,7 +49,7 @@ export default class PlayerController extends TransformNode {
         });
     }
 
-    private _floorRaycast(offsetX:number,offsetZ:number,distance:number):Vector3{
+    private _floorRaycast(offsetX:number,offsetZ:number,distance:number):boolean{
         const pos = new Vector3(
             this.mesh.position.x + offsetX,
             this.mesh.position.y + 0.5,
@@ -58,17 +60,18 @@ export default class PlayerController extends TransformNode {
             return mesh.isPickable && mesh.isEnabled();
         }
         let pick = this.scene.pickWithRay(ray,predicate);
+
         if (pick.hit) { 
-            return pick.pickedPoint;
+            return true;
         } else { 
-            return Vector3.Zero();
+            return false;
         }
     }
     private _isGrounded(): boolean {
-        if (this._floorRaycast(0, 0, 0.6).equals(Vector3.Zero())) {
-            return false;
-        } else {
+        if (this._floorRaycast(0, 0, 0.8)) {
             return true;
+        } else {
+            return false;
         }
     }
     private _updateFromControll():void{
@@ -114,7 +117,17 @@ export default class PlayerController extends TransformNode {
         return;
     }
     private _updateGroundDetection(): void {
-        if (!this._isGrounded()) {
+        // if (!this._isGrounded()) {
+        //     this._gravity = this._gravity.addInPlace(Vector3.Up().scale(this._delta_time * PlayerController.GRAVITY));
+        //     this._grounded = false;
+        // }
+        if (this._checkSlope() && this._gravity.y <= 0) {
+            //if you are considered on a slope, you're able to jump and gravity wont affect you
+            this._gravity.y = 0;
+            this._jumpCount = 1;
+            this._grounded = true;
+        } else {
+            //keep applying gravity
             this._gravity = this._gravity.addInPlace(Vector3.Up().scale(this._delta_time * PlayerController.GRAVITY));
             this._grounded = false;
         }
@@ -132,7 +145,7 @@ export default class PlayerController extends TransformNode {
             this._jumpCount = 1;
         }
         if(this._input.jumpKeyDown && this._jumpCount >0){
-            // this._gravity.y = PlayerController.JUMP_FORCE;
+            this._gravity.y = PlayerController.JUMP_FORCE;
             this._jumpCount--;
         }
     }
@@ -179,5 +192,49 @@ export default class PlayerController extends TransformNode {
         this.scene.activeCamera = this.camera;
         return this.camera;
         // var camera4 = new ArcRotateCamera("arc", -Math.PI/2, Math.PI/2, 40, new Vector3(0,3,0), this.scene);
+    }
+    private _checkSlope(): boolean {
+        //only check meshes that are pickable and enabled (specific for collision meshes that are invisible)
+        let predicate = function (mesh) {
+            return mesh.isPickable && mesh.isEnabled();
+        }
+
+        //4 raycasts outward from center
+        let raycast = new Vector3(this.mesh.position.x, this.mesh.position.y + 0.5, this.mesh.position.z + .25);
+        let ray = new Ray(raycast, Vector3.Up().scale(-1), 1.5);
+        let pick = this.scene.pickWithRay(ray, predicate);
+
+        let raycast2 = new Vector3(this.mesh.position.x, this.mesh.position.y + 0.5, this.mesh.position.z - .25);
+        let ray2 = new Ray(raycast2, Vector3.Up().scale(-1), 1.5);
+        let pick2 = this.scene.pickWithRay(ray2, predicate);
+
+        let raycast3 = new Vector3(this.mesh.position.x + .25, this.mesh.position.y + 0.5, this.mesh.position.z);
+        let ray3 = new Ray(raycast3, Vector3.Up().scale(-1), 1.5);
+        let pick3 = this.scene.pickWithRay(ray3, predicate);
+
+        let raycast4 = new Vector3(this.mesh.position.x - .25, this.mesh.position.y + 0.5, this.mesh.position.z);
+        let ray4 = new Ray(raycast4, Vector3.Up().scale(-1), 1.5);
+        let pick4 = this.scene.pickWithRay(ray4, predicate);
+
+        if (pick.hit && !pick.getNormal().equals(Vector3.Up())) {
+            if(pick.pickedMesh.name.includes("stair")) { 
+                return true; 
+            }
+        } else if (pick2.hit && !pick2.getNormal().equals(Vector3.Up())) {
+            if(pick2.pickedMesh.name.includes("stair")) { 
+                return true; 
+            }
+        }
+        else if (pick3.hit && !pick3.getNormal().equals(Vector3.Up())) {
+            if(pick3.pickedMesh.name.includes("stair")) { 
+                return true; 
+            }
+        }
+        else if (pick4.hit && !pick4.getNormal().equals(Vector3.Up())) {
+            if(pick4.pickedMesh.name.includes("stair")) { 
+                return true; 
+            }
+        }
+        return false;
     }
 }
