@@ -8,7 +8,6 @@ import {
     Color4, 
     Camera} from "@babylonjs/core";
 
-
 import StartScene from './scenes/start';
 import LoadingScene from './scenes/loading';
 import GameScene from "./scenes/game";
@@ -121,7 +120,8 @@ class App{
         game.init({
             callback:this._gotoLose.bind(this),
             game_scene:this._game_scene,
-            player_mesh:this._player_mesh
+            player_mesh:this._player_mesh,
+            environment:this._environment,
         });
 
         this._scene.dispose();
@@ -145,8 +145,6 @@ class App{
         this._environment = environment;
         await this._environment.load(); //environment
         this._player_mesh = await this._environment._loadCharacterAssets();
-
-        // await this._loadCharacterAssets(scene);
     }
 }
 /* eslint-disable */

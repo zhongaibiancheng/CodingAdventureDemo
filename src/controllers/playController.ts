@@ -1,4 +1,4 @@
-import { TransformNode, ShadowGenerator, Scene, Mesh, UniversalCamera, ArcRotateCamera, Vector3, Camera, Quaternion, Ray } from "@babylonjs/core";
+import { TransformNode, ShadowGenerator, Scene, Mesh, UniversalCamera, ArcRotateCamera, Vector3, Camera, Quaternion, Ray, ActionManager, ExecuteCodeAction } from "@babylonjs/core";
 import InputController from './inputController';
 
 export default class PlayerController extends TransformNode {
@@ -30,13 +30,21 @@ export default class PlayerController extends TransformNode {
     private _grounded:Boolean = true;
     private _jumpCount:number = 1;
 
+    private lanternsLit:number = 0;
+    private win:boolean = false;
+
     constructor(assets, scene: Scene, shadowGenerator: ShadowGenerator, input?) {
         super("player", scene);
+
         this.scene = scene;
+        this.scene.collisionsEnabled = true;
+
         this._setupPlayerCamera();
 
         this.mesh = assets;
         this.mesh.parent = this;
+
+        this.mesh.actionManager = new ActionManager(this.scene);
 
         this.scene.getLightByName("sparklight").parent = this.scene.getTransformNodeByName("Empty");
         
@@ -45,8 +53,29 @@ export default class PlayerController extends TransformNode {
         this._input = input;
 
         this.scene.onBeforeRenderObservable.add(()=>{
-            console.log(this._input.horizontal,this._input.vertical);
+            // console.log(this._input.horizontal,this._input.vertical);
         });
+
+        //destination point
+        this.mesh.actionManager.registerAction(
+            new ExecuteCodeAction({
+                trigger: ActionManager.OnIntersectionEnterTrigger,
+                parameter: this.scene.getMeshByName("destination"),
+            },()=>{
+                if(this.lanternsLit === 22){
+                    this.win = true;
+                    this._yTilt.rotation = new Vector3(5.689773361501514, 0.23736477827122882, 0);
+                    this._yTilt.position = new Vector3(0, 6, 0);
+                    this.camera.position.y = 17;
+                }
+            }));
+        
+        this.mesh.actionManager.registerAction(new ExecuteCodeAction({
+            trigger:ActionManager.OnIntersectionEnterTrigger,
+            parameter:this.scene.getMeshByName("ground")
+        },()=>{
+            this.mesh.position.copyFrom(this._lastGroundPos);
+        }));
     }
 
     private _floorRaycast(offsetX:number,offsetZ:number,distance:number):boolean{
@@ -68,7 +97,7 @@ export default class PlayerController extends TransformNode {
         }
     }
     private _isGrounded(): boolean {
-        if (this._floorRaycast(0, 0, 0.8)) {
+        if (this._floorRaycast(0, 0, 0.6)) {
             return true;
         } else {
             return false;
@@ -117,25 +146,26 @@ export default class PlayerController extends TransformNode {
         return;
     }
     private _updateGroundDetection(): void {
-        // if (!this._isGrounded()) {
-        //     this._gravity = this._gravity.addInPlace(Vector3.Up().scale(this._delta_time * PlayerController.GRAVITY));
-        //     this._grounded = false;
-        // }
-        if (this._checkSlope() && this._gravity.y <= 0) {
-            //if you are considered on a slope, you're able to jump and gravity wont affect you
-            this._gravity.y = 0;
-            this._jumpCount = 1;
-            this._grounded = true;
-        } else {
-            //keep applying gravity
-            this._gravity = this._gravity.addInPlace(Vector3.Up().scale(this._delta_time * PlayerController.GRAVITY));
-            this._grounded = false;
+        const is_ground = this._isGrounded();
+        console.log(is_ground);
+        if (!is_ground) {
+            if (this._checkSlope() && this._gravity.y <= 0) {
+                //if you are considered on a slope, you're able to jump and gravity wont affect you
+                this._gravity.y = 0;
+                this._jumpCount = 1;
+                this._grounded = true;
+            } else {
+                //keep applying gravity
+                this._gravity = this._gravity.addInPlace(Vector3.Up().scale(this._delta_time * PlayerController.GRAVITY));
+                this._grounded = false;
+            }
         }
         //limit the speed of gravity to the negative of the jump power
         if (this._gravity.y < -PlayerController.JUMP_FORCE) {
             this._gravity.y = -PlayerController.JUMP_FORCE;
         }
-        this.mesh.moveWithCollisions(this._moveDirection.addInPlace(this._gravity));
+        this._moveDirection = this._moveDirection.addInPlace(this._gravity);
+        this.mesh.moveWithCollisions(this._moveDirection);
 
         if (this._isGrounded()) {
             this._gravity.y = 0;
@@ -151,6 +181,33 @@ export default class PlayerController extends TransformNode {
     }
 
     private _updateCamera(): void {
+        //不错的想法
+        //trigger areas for rotating camera view
+        if (this.mesh.intersectsMesh(this.scene.getMeshByName("cornerTrigger"))) {
+            if (this._input.horizontalAxis > 0) { //rotates to the right                
+                this._camRoot.rotation = Vector3.Lerp(this._camRoot.rotation, new Vector3(this._camRoot.rotation.x, Math.PI / 2, this._camRoot.rotation.z), 0.4);
+            } else if (this._input.horizontalAxis < 0) { //rotates to the left
+                this._camRoot.rotation = Vector3.Lerp(this._camRoot.rotation, new Vector3(this._camRoot.rotation.x, Math.PI, this._camRoot.rotation.z), 0.4);
+            }
+        }
+
+        //rotates the camera to point down at the player when they enter the area, and returns it back to normal when they exit
+        if (this.mesh.intersectsMesh(this.scene.getMeshByName("festivalTrigger"))) {
+            if (this._input.verticalAxis > 0) {
+                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, Player.DOWN_TILT, 0.4);
+            } else if (this._input.verticalAxis < 0) {
+                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, Player.ORIGINAL_TILT, 0.4);
+            }
+        }
+        //once you've reached the destination area, return back to the original orientation, if they leave rotate it to the previous orientation
+        if (this.mesh.intersectsMesh(this.scene.getMeshByName("destinationTrigger"))) {
+            if (this._input.verticalAxis > 0) {
+                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, Player.ORIGINAL_TILT, 0.4);
+            } else if (this._input.verticalAxis < 0) {
+                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, Player.DOWN_TILT, 0.4);
+            }
+        }
+
         let centerPlayer = this.mesh.position.y + 2;
         this._camRoot.position = Vector3.Lerp(this._camRoot.position, new Vector3(this.mesh.position.x, centerPlayer, this.mesh.position.z), 0.4);
     }
