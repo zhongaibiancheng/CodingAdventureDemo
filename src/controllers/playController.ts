@@ -24,7 +24,7 @@ export default class PlayerController extends TransformNode {
     private static readonly JUMP_FORCE: number = 0.80;
     private static readonly GRAVITY: number = -2.8;
     private static readonly ORIGINAL_TILT: Vector3 = new Vector3(0.5934119456780721, 0, 0);
-    
+    private static readonly DOWN_TILT: Vector3 = new Vector3(0.8290313946973066, 0, 0);
     private _gravity:Vector3 = new Vector3();
     private _lastGroundPos:Vector3 = new Vector3();
     private _grounded:Boolean = true;
@@ -147,7 +147,7 @@ export default class PlayerController extends TransformNode {
     }
     private _updateGroundDetection(): void {
         const is_ground = this._isGrounded();
-        console.log(is_ground);
+
         if (!is_ground) {
             if (this._checkSlope() && this._gravity.y <= 0) {
                 //if you are considered on a slope, you're able to jump and gravity wont affect you
@@ -194,17 +194,17 @@ export default class PlayerController extends TransformNode {
         //rotates the camera to point down at the player when they enter the area, and returns it back to normal when they exit
         if (this.mesh.intersectsMesh(this.scene.getMeshByName("festivalTrigger"))) {
             if (this._input.verticalAxis > 0) {
-                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, Player.DOWN_TILT, 0.4);
+                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, PlayerController.DOWN_TILT, 0.4);
             } else if (this._input.verticalAxis < 0) {
-                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, Player.ORIGINAL_TILT, 0.4);
+                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, PlayerController.ORIGINAL_TILT, 0.4);
             }
         }
         //once you've reached the destination area, return back to the original orientation, if they leave rotate it to the previous orientation
         if (this.mesh.intersectsMesh(this.scene.getMeshByName("destinationTrigger"))) {
             if (this._input.verticalAxis > 0) {
-                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, Player.ORIGINAL_TILT, 0.4);
+                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, PlayerController.ORIGINAL_TILT, 0.4);
             } else if (this._input.verticalAxis < 0) {
-                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, Player.DOWN_TILT, 0.4);
+                this._yTilt.rotation = Vector3.Lerp(this._yTilt.rotation, PlayerController.DOWN_TILT, 0.4);
             }
         }
 

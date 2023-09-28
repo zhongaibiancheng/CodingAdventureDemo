@@ -55,7 +55,7 @@ export default class Lantern{
     //???????
     //when the light is created, only include the meshes that are within the sphere of illumination
     private _findNearestMeshes(light: PointLight): void {
-        // console.log(this._scene.getMeshByName("__root__"));
+
         this._scene.getMeshByName("__root__").getChildMeshes().forEach(m => {
             if (this._lightSphere.intersectsMesh(m)) {
                 light.includedOnlyMeshes.push(m);

@@ -21,6 +21,8 @@ import {SceneParams} from '../utils/const';
 import PlayerController from "../controllers/playController";
 import InputController from '../controllers/inputController';
 
+import GUI from '../ui/ui';
+
 export default class GameScene extends Base{
     _player_mesh:Mesh;
     _player:PlayerController;
@@ -85,6 +87,7 @@ export default class GameScene extends Base{
 
         params.environment.checkLanterns(this._player);
 
+        const gui = new GUI(scene,this._player.camera);
         return scene;
     }
 
