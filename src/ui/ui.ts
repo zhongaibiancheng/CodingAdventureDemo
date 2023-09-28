@@ -11,8 +11,8 @@ export default class GUI{
     private _spark:Image;
 
     private _startTime:number;
-    private _stopTimer:boolean;
-    private _prevTime:number;
+    private _stopTimer:boolean = false;
+    private _prevTime:number = 0.0;
     private time:number;
     private _sString = "00";
     private _mString = 11;
@@ -20,12 +20,17 @@ export default class GUI{
 
     private _pauseMenu:Rectangle;
 
-    private gamePaused:boolean;
+    public gamePaused:boolean;
     private _gui:AdvancedDynamicTexture;
     private _controls:Rectangle;
     private fadeLevel:number;
 
     private transition:boolean;
+
+    private stopSpark:boolean =false;
+
+    private _handle;
+    private _handleSpark;
     constructor(scene,camera){
         this._scene = scene;
         this._camera = camera;
@@ -56,20 +61,18 @@ export default class GUI{
         stackPanel.verticalAlignment = 0;
         gui.addControl(stackPanel);
 
-        const clockTime = new TextBlock("clock time");
+        this._clockTime = new TextBlock("clock time");
         // clockTime.verticalAlignment = Control.VERTICAL_ALIGNMENT_TOP;
-        clockTime.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-        clockTime.resizeToFit = true;
-        clockTime.fontSize = "48px";
-        clockTime.color = "white";
-        clockTime.text = "11:00";
-        clockTime.height = "96px";
-        clockTime.width = "220px";
-        clockTime.fontFamily = "Viga";
+        this._clockTime.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
+        this._clockTime.resizeToFit = true;
+        this._clockTime.fontSize = "48px";
+        this._clockTime.color = "white";
+        this._clockTime.text = "11:00";
+        this._clockTime.height = "96px";
+        this._clockTime.width = "220px";
+        this._clockTime.fontFamily = "Viga";
 
-        stackPanel.addControl(clockTime);
-
-        this._clockTime = clockTime;
+        stackPanel.addControl(this._clockTime);
 
         //sparkler bar animation
         const sparklerLife = new Image("sparkLife", "./sprites/sparkLife.png");
@@ -124,6 +127,7 @@ export default class GUI{
         });
 
         this._gui = gui;
+
         this._createPauseMenu();
         this._createControlsMenu();
     }
@@ -209,27 +213,11 @@ export default class GUI{
         quitBtn.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
         stackPanel.addControl(quitBtn);
 
-        // //set up transition effect
-        // Effect.RegisterShader("fade",
-        //     "precision highp float;" +
-        //     "varying vec2 vUV;" +
-        //     "uniform sampler2D textureSampler; " +
-        //     "uniform float fadeLevel; " +
-        //     "void main(void){" +
-        //     "vec4 baseColor = texture2D(textureSampler, vUV) * fadeLevel;" +
-        //     "baseColor.a = 1.0;" +
-        //     "gl_FragColor = baseColor;" +
-        //     "}");
-        // this.fadeLevel = 1.0;
-
         quitBtn.onPointerDownObservable.add(() => {
-            // const postProcess = new PostProcess("Fade", "fade", ["fadeLevel"], null, 1.0, this._scene.getCameraByName("cam"));
-            // postProcess.onApply = (effect) => {
-            //     effect.setFloat("fadeLevel", this.fadeLevel);
-            // };
-            // this.transition = true;
+
             this._pauseMenu.isVisible = false;
             this.pauseBtn.isHitTestVisible = true;
+            this.gamePaused = false;
         })
     }
     public startTimer(){
@@ -239,14 +227,16 @@ export default class GUI{
     public stopTimer(){
         this._stopTimer = true;
     }
+
     public updateHud(){
-        if(!this._stopTimer && this.startTimer != null){
+        if(!this._stopTimer && this._startTime != null){
             let curTime = Math.floor(new Date().getTime() - this._startTime) /1000.0 + this._prevTime;
             this.time = curTime;
 
             this._clockTime.text = this._formatTime(this.time);
         }
     }
+
     public _formatTime(time:number):string{
         let minsPassed = Math.floor(time / 60); //seconds in a min 
         let secPassed = time % 240; // goes back to 0 after 4mins/240sec
@@ -257,6 +247,7 @@ export default class GUI{
             this._sString = (secPassed / 4 < 10 ? "0" : "") + secPassed / 4;
         }
         let day = (this._mString == 11 ? " PM" : " AM");
+        console.log((this._mString + ":" + this._sString + day))
         return (this._mString + ":" + this._sString + day);
     }
     //---- Controls Menu Popup ----
@@ -298,5 +289,47 @@ export default class GUI{
             this._pauseMenu.isVisible = true;
             this._controls.isVisible = false;
         });
+    }
+
+    public startSparklerTimer():void{
+        this.stopSpark = false;
+        this._sparklerLife.cellId = 0;
+        if(this._handle){
+            clearInterval(this._handle);
+        }
+        if(this._handleSpark){
+            clearInterval(this._handleSpark);
+        }
+        this._scene.getLightByName("sparklight").intensity = 35;
+
+        this._handle = setInterval(()=>{
+            if(!this.gamePaused){
+                if(this._sparklerLife.cellId <10){
+                    this._sparklerLife.cellId++;
+                }
+                if(this._sparklerLife.cellId === 10){
+                    this.stopSpark = true;
+                    clearInterval(this._handle);
+                }
+            }
+        },2000);
+        this._handleSpark = setInterval(() => {
+            if (!this.gamePaused) {
+                if (this._sparklerLife.cellId < 10 && this._spark.cellId < 5) {
+                    this._spark.cellId++;
+                } else if (this._sparklerLife.cellId < 10 && this._spark.cellId >= 5) {
+                    this._spark.cellId = 0;
+                }
+                else {
+                    this._spark.cellId = 0;
+                    clearInterval(this._handleSpark);
+                }
+            }
+        }, 185);
+    }
+    //stop the sparkler, resets the texture
+    public stopSparklerTimer(): void {
+        this.stopSpark = true;
+        this._scene.getLightByName("sparklight").intensity = 0;
     }
 }

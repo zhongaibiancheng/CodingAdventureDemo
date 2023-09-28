@@ -27,6 +27,7 @@ export default class GameScene extends Base{
     _player_mesh:Mesh;
     _player:PlayerController;
 
+    gui:AdvancedDynamicTexture;
     constructor(engine:Engine,scene:Scene){
         super(engine,scene);
     }
@@ -88,6 +89,31 @@ export default class GameScene extends Base{
         params.environment.checkLanterns(this._player);
 
         const gui = new GUI(scene,this._player.camera);
+        gui.startTimer();
+        gui.startSparklerTimer();
+
+        scene.registerBeforeRender(()=>{
+            gui.updateHud();
+        });
+
+
+        scene.onBeforeRenderObservable.add(() => {
+            // //reset the sparkler timer
+            // if (this._player.sparkReset) {
+            //     gui.startSparklerTimer();
+            //     this._player.sparkReset = false;
+            // }
+            // //stop the sparkler timer after 20 seconds
+            // else if (this._ui.stopSpark && this._player.sparkLit) {
+            //     gui.stopSparklerTimer();
+            //     this._player.sparkLit = false;
+            // }
+            // when the game isn't paused, update the timer
+            if (!gui.gamePaused) {
+                gui.updateHud();
+            }
+        });
+
         return scene;
     }
 
