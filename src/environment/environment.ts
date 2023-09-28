@@ -21,6 +21,7 @@ import {
     Texture,
     TransformNode,
     ExecuteCodeAction,
+    AnimationGroup,
     ActionManager} from "@babylonjs/core";
 import PlayerController from "../controllers/playController";
 
@@ -121,7 +122,7 @@ export default class Environment{
         }
     }
 
-    public async _loadCharacterAssets():Promise<Mesh>{
+    public async _loadCharacterAssets():Promise<any>{
         //collision mesh
         const outer = MeshBuilder.CreateBox("outer", { width: 2, depth: 1, height: 3 }, this._scene);
         outer.isVisible = true;
@@ -139,6 +140,7 @@ export default class Environment{
 
         const result = await SceneLoader.ImportMeshAsync(null, "./models/", "player.glb", this._scene)
         const root = result.meshes[0];
+        const animations = result.animationGroups;
         //body is our actual player mesh
         const body = root;
         body.parent = outer;
@@ -147,7 +149,10 @@ export default class Environment{
             m.isPickable = false;
         });
 
-        return outer;
+        return {
+            outer:outer,
+            animations:animations
+        };
     }
 
     public checkLanterns(player:PlayerController){

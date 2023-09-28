@@ -1,4 +1,4 @@
-import { TransformNode, ShadowGenerator, Scene, Mesh, UniversalCamera, ArcRotateCamera, Vector3, Camera, Quaternion, Ray, ActionManager, ExecuteCodeAction } from "@babylonjs/core";
+import { TransformNode, ShadowGenerator, Scene, Mesh, UniversalCamera, ArcRotateCamera, Vector3, Camera, Quaternion, Ray, ActionManager, ExecuteCodeAction, AnimationGroup } from "@babylonjs/core";
 import InputController from './inputController';
 
 export default class PlayerController extends TransformNode {
@@ -33,7 +33,9 @@ export default class PlayerController extends TransformNode {
     private lanternsLit:number = 0;
     private win:boolean = false;
 
-    constructor(assets, scene: Scene, shadowGenerator: ShadowGenerator, input?) {
+    private _idle:AnimationGroup;
+
+    constructor(assets, scene: Scene, shadowGenerator: ShadowGenerator, input?,animations?) {
         super("player", scene);
 
         this.scene = scene;
@@ -52,6 +54,7 @@ export default class PlayerController extends TransformNode {
 
         this._input = input;
 
+        this._idle = animations[1];
         this.scene.onBeforeRenderObservable.add(()=>{
             // console.log(this._input.horizontal,this._input.vertical);
         });
@@ -76,6 +79,37 @@ export default class PlayerController extends TransformNode {
         },()=>{
             this.mesh.position.copyFrom(this._lastGroundPos);
         }));
+
+        this._setUpAnimations();
+    }
+    private _animatePlayer(): void {
+        // if (!this._dashPressed && !this._isFalling && !this._jumped 
+        //     && (this._input.inputMap["ArrowUp"] || this._input.mobileUp
+        //     || this._input.inputMap["ArrowDown"] || this._input.mobileDown
+        //     || this._input.inputMap["ArrowLeft"] || this._input.mobileLeft
+        //     || this._input.inputMap["ArrowRight"] || this._input.mobileRight)) {
+
+        //     this._currentAnim = this._run;
+        //     this.onRun.notifyObservers(true);
+        // } else if (this._jumped && !this._isFalling && !this._dashPressed) {
+        //     this._currentAnim = this._jump;
+        // } else if (!this._isFalling && this._grounded) {
+        //     this._currentAnim = this._idle;
+        //     //only notify observer if it's playing
+        //     if(this.scene.getSoundByName("walking").isPlaying){
+        //         this.onRun.notifyObservers(false);
+        //     }
+        // } else if (this._isFalling) {
+        //     this._currentAnim = this._land;
+        // }
+
+        //Animations
+        // if(this._currentAnim != null && this._prevAnim !== this._currentAnim){
+        //     this._prevAnim.stop();
+        //     this._currentAnim.play(this._currentAnim.loopAnimation);
+        //     this._prevAnim = this._currentAnim;
+        // }
+        this._idle.play(this._idle.loopAnimation);
     }
 
     private _floorRaycast(offsetX:number,offsetZ:number,distance:number):boolean{
@@ -215,6 +249,8 @@ export default class PlayerController extends TransformNode {
     private _beforeRenderUpdate(): void {
         this._updateFromControll();
         this._updateGroundDetection();
+
+        this._animatePlayer();
     }
 
     public activatePlayerCamera(): UniversalCamera {
@@ -294,4 +330,15 @@ export default class PlayerController extends TransformNode {
         }
         return false;
     }
+    private _setUpAnimations(): void {
+
+        // this.scene.stopAllAnimations();
+        // this._run.loopAnimation = true;
+        this._idle.loopAnimation = true;
+
+        //initialize current and previous
+        // this._currentAnim = this._idle;
+        // this._prevAnim = this._land;
+    }
+
 }

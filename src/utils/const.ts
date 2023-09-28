@@ -1,4 +1,4 @@
-import { Mesh, Scene } from "@babylonjs/core";
+import { AnimationGroup, Mesh, Scene } from "@babylonjs/core";
 import Environment from "../environment/environment";
 
 interface SceneParams{
@@ -9,7 +9,8 @@ interface SceneParams{
 
     game_scene?:Scene,
     player_mesh?:Mesh,
-    environment?:Environment
+    environment?:Environment,
+    animations?:Array<AnimationGroup>
 }
 
 export {SceneParams};

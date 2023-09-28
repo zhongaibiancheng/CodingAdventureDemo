@@ -6,7 +6,8 @@ import {
     FreeCamera,
     Vector3, HemisphericLight, Mesh, MeshBuilder, 
     Color4, 
-    Camera} from "@babylonjs/core";
+    Camera,
+    AnimationGroup} from "@babylonjs/core";
 
 import StartScene from './scenes/start';
 import LoadingScene from './scenes/loading';
@@ -29,6 +30,7 @@ class App{
     _environment:Environment;
 
     _player_mesh:Mesh;
+    _animations:Array<AnimationGroup>;
     constructor(){
 
         this._canvas = this.createCanvas();
@@ -121,6 +123,7 @@ class App{
             callback:this._gotoLose.bind(this),
             game_scene:this._game_scene,
             player_mesh:this._player_mesh,
+            animations:this._animations,
             environment:this._environment,
         });
 
@@ -144,7 +147,9 @@ class App{
         const environment = new Environment(this._game_scene);
         this._environment = environment;
         await this._environment.load(); //environment
-        this._player_mesh = await this._environment._loadCharacterAssets();
+        const result = await this._environment._loadCharacterAssets();
+        this._player_mesh = result.outer;
+        this._animations  = result.animations;
     }
 }
 /* eslint-disable */

@@ -12,7 +12,8 @@ import {
     MeshBuilder,
     PointLight,
     Color3,
-    ShadowGenerator
+    ShadowGenerator,
+    AnimationGroup
 } from "@babylonjs/core";
 import { AdvancedDynamicTexture, Button, Control } from "@babylonjs/gui";
 
@@ -27,6 +28,7 @@ export default class GameScene extends Base{
     _player_mesh:Mesh;
     _player:PlayerController;
 
+    _animations:Array<AnimationGroup>;
     gui:AdvancedDynamicTexture;
     constructor(engine:Engine,scene:Scene){
         super(engine,scene);
@@ -48,13 +50,15 @@ export default class GameScene extends Base{
             this._player_mesh, 
             scene, 
             shadowGenerator,
-            input);
+            input,
+            this._animations
+            );
         
         this._player.activatePlayerCamera();
     }
     async init(params:SceneParams|undefined):Promise<Scene>{
         this._player_mesh = params.player_mesh;
-
+        this._animations = params.animations;
         this._scene.detachControl();
 
         const scene = params.game_scene;
@@ -117,7 +121,5 @@ export default class GameScene extends Base{
         return scene;
     }
 
-    _goToCutScene():void{
-        
-    }
+
 }
