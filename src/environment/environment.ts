@@ -82,7 +82,7 @@ export default class Environment{
             m.receiveShadows = true;
 
             if(m.name === 'ground'){
-                m.isPickable = false;
+                m.isPickable = true;
                 m.checkCollisions = true;
             }
 
@@ -125,7 +125,7 @@ export default class Environment{
     public async _loadCharacterAssets():Promise<any>{
         //collision mesh
         const outer = MeshBuilder.CreateBox("outer", { width: 2, depth: 1, height: 3 }, this._scene);
-        outer.isVisible = true;
+        outer.isVisible = false;
         outer.isPickable = false;
         outer.checkCollisions = true;
 

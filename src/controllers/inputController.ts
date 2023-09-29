@@ -1,7 +1,7 @@
 import { ActionManager, ExecuteCodeAction, Scalar, Scene } from "@babylonjs/core";
 
 export default class InputController{
-    private inputMap:any;
+    public inputMap:any;
     public horizontal:number;
     public vertical:number;
     public horizontalAxis:number;
