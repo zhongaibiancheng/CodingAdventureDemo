@@ -25,6 +25,8 @@ export default class PlayerController extends TransformNode {
     private static readonly GRAVITY: number = -2.8;
     private static readonly ORIGINAL_TILT: Vector3 = new Vector3(0.5934119456780721, 0, 0);
     private static readonly DOWN_TILT: Vector3 = new Vector3(0.8290313946973066, 0, 0);
+    private static readonly DASH_TIME:number = 10; //how many frames the dash lasts
+    private static readonly DASH_FACTOR: number = 2.5;
     private _gravity:Vector3 = new Vector3();
     private _lastGroundPos:Vector3 = new Vector3();
     private _grounded:Boolean = true;
@@ -47,7 +49,10 @@ export default class PlayerController extends TransformNode {
     //跳起
     private _jumped:boolean = false;
 
-    private _dashPressed:false;
+    private _dashPressed:boolean = false;
+    private _canDash:boolean = false;
+
+    public dashTime:number = 0;
 
     constructor(assets, scene: Scene, shadowGenerator: ShadowGenerator, input?,animations?) {
         super("player", scene);
@@ -165,6 +170,35 @@ export default class PlayerController extends TransformNode {
         this._v = this._input.vertical;
 
         this._moveDirection = Vector3.Zero();
+
+        //--DASHING--
+        //limit dash to once per ground/platform touch
+        //can only dash when in the air
+        if (this._input.dashing && !this._dashPressed && this._canDash && !this._grounded) {
+            this._canDash = false;
+            this._dashPressed = true;
+    
+            //sfx and animations
+            this._curAnims = this._dash;
+            // this._dashingSfx.play();
+
+            //tutorial, if the player dashes for the first time
+            // if(!this.tutorial_dash){
+            //     this.tutorial_dash = true;
+            // }
+        }
+
+        let dashFactor = 1;
+        //if you're dashing, scale movement
+        if (this._dashPressed) {
+            if (this.dashTime > PlayerController.DASH_TIME) {
+                this.dashTime = 0;
+                this._dashPressed = false;
+            } else {
+                dashFactor = PlayerController.DASH_FACTOR;
+            }
+            this.dashTime++;
+        }
 
         let fwd = this._camRoot.forward;
         let right = this._camRoot.right;

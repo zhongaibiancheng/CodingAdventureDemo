@@ -1,4 +1,4 @@
-import { AnimationGroup, Color3, Mesh, MeshBuilder, PBRMetallicRoughnessMaterial, PointLight, Scene, Vector3 } from "@babylonjs/core";
+import { AnimationGroup, Color3, Color4, Mesh, MeshBuilder, ParticleSystem, PBRMetallicRoughnessMaterial, PointLight, Scene, Texture, Vector3 } from "@babylonjs/core";
 
 export default class Lantern{
     public _lit:boolean = false;
@@ -6,7 +6,10 @@ export default class Lantern{
     public mesh:Mesh;
     private _lightSphere:Mesh;
     private _lightmtl:PBRMetallicRoughnessMaterial;
-
+    private _animation:AnimationGroup;
+    //Particle System
+    private _stars: ParticleSystem;
+        
     constructor(
         lightmtl: PBRMetallicRoughnessMaterial, 
         mesh: Mesh, 
@@ -24,8 +27,12 @@ export default class Lantern{
             lightSphere.isPickable = false;
 
             this._lightSphere = lightSphere;
+            this._animation = animationGroups;
 
-        this._loadLantern(mesh,position);
+            this._loadLantern(mesh,position);
+
+            //load particle system
+            this._loadStars();
     }
     /**
      * 加载灯笼model
@@ -50,6 +57,9 @@ export default class Lantern{
         light.intensity = 30;
         light.radius = 2;
         light.diffuse = new Color3(0.45, 0.56, 0.80);
+
+        this._animation.play();
+        this._stars.start();
         this._findNearestMeshes(light);
     }
     //???????
@@ -64,5 +74,27 @@ export default class Lantern{
 
         //get rid of the sphere
         this._lightSphere.dispose();
+    }
+
+    private _loadStars(): void {
+        const particleSystem = new ParticleSystem("stars", 1000, this._scene);
+
+        particleSystem.particleTexture = new Texture("textures/solidStar.png", this._scene);
+        particleSystem.emitter = new Vector3(this.mesh.position.x, this.mesh.position.y + 1.5, this.mesh.position.z);
+        particleSystem.createPointEmitter(new Vector3(0.6, 1, 0), new Vector3(0, 1, 0));
+        particleSystem.color1 = new Color4(1, 1, 1);
+        particleSystem.color2 = new Color4(1, 1, 1);
+        particleSystem.colorDead = new Color4(1, 1, 1, 1);
+        particleSystem.emitRate = 12;
+        particleSystem.minEmitPower = 14;
+        particleSystem.maxEmitPower = 14;
+        particleSystem.addStartSizeGradient(0, 2);
+        particleSystem.addStartSizeGradient(1, 0.8);
+        particleSystem.minAngularSpeed = 0;
+        particleSystem.maxAngularSpeed = 2;
+        particleSystem.addDragGradient(0, 0.7, 0.7);
+        particleSystem.targetStopDuration = .25;
+
+        this._stars = particleSystem;
     }
 }

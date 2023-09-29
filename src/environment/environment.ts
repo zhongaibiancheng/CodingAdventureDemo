@@ -59,6 +59,8 @@ export default class Environment{
         const lantern = assets.lantern;
         lantern.isVisible = false;
         
+        const animation = assets.animationGroup;
+
         const lanternHolder = new TransformNode("lanterns",this._scene);
         for(let i=0;i<22;i++){
             const l = lantern.clone("lantern-"+i);
@@ -66,7 +68,10 @@ export default class Environment{
             l.setParent(lanternHolder);
 
             const pos = this._lantern_pos["lantern "+i];
-            const lan = new Lantern(this._lightmtl,l,this._scene,pos);
+            const animationGroup = new AnimationGroup("lantern "+i);
+
+            animationGroup.addTargetedAnimation(animation.targetedAnimations[0].animation, l);
+            const lan = new Lantern(this._lightmtl,l,this._scene,pos,animationGroup);
             this._lanternObjs.push(lan);
         }
         lantern.dispose();
@@ -109,6 +114,16 @@ export default class Environment{
         lantern.parent = null;
         res.meshes[0].dispose();
 
+        //--ANIMATION--
+        //extract animation from lantern (following demystifying animation groups video)
+        const importedAnims = res.animationGroups;
+        let animation = [];
+        animation.push(importedAnims[0].targetedAnimations[0].animation);
+        importedAnims[0].dispose();
+        //create a new animation group and target the mesh to its animation
+        let animGroup = new AnimationGroup("lanternAnimGroup");
+        animGroup.addTargetedAnimation(animation[0], res.meshes[1]);
+
         let lantern_pos = env.getChildTransformNodes(false).filter(m => m.name.includes("lantern "));
         
         lantern_pos.forEach(m=>{
@@ -118,7 +133,8 @@ export default class Environment{
         return {
             env:env,
             allMeshes:allMeshes,
-            lantern:lantern as Mesh
+            lantern:lantern as Mesh,
+            animationGroup:animGroup
         }
     }
 
@@ -156,9 +172,9 @@ export default class Environment{
     }
 
     public checkLanterns(player:PlayerController){
-        if(!this._lanternObjs[0]._lit){
-            this._lanternObjs[0].setEmissiveTexture();
-        }
+        // if(!this._lanternObjs[0]._lit){
+        //     this._lanternObjs[0].setEmissiveTexture();
+        // }
         this._lanternObjs.forEach(lantern=>{
             player.mesh.actionManager.registerAction(
                 new ExecuteCodeAction(
